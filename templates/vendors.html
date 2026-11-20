@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Vendors - IT Asset Management Platform{% endblock %}
+{% block header_title %}Vendors & Suppliers Directory{% endblock %}
+
+{% block content %}
+
+{% if action == 'add' or action == 'edit' %}
+<div class="card" style="max-width: 680px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-shop"></i>
+      {% if action == 'add' %}Register New Vendor{% else %}Edit Vendor: {{ vendor.vendor_name }}{% endif %}
+    </div>
+    <a href="{{ url_for('vendors.vendors_list') }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to Vendors
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{% if action == 'add' %}{{ url_for('vendors.add_vendor') }}{% else %}{{ url_for('vendors.edit_vendor', id=vendor.vendor_id) }}{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="vendor_name">Vendor / Company Name <span class="required">*</span></label>
+            <input type="text" id="vendor_name" name="vendor_name" class="form-control" placeholder="e.g. Dell Technologies" value="{{ vendor.vendor_name if action == 'edit' else (form.vendor_name if form else '') }}" required autofocus>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="contact_person">Contact Representative</label>
+            <input type="text" id="contact_person" name="contact_person" class="form-control" placeholder="e.g. Michael Stevens" value="{{ vendor.contact_person if action == 'edit' else (form.contact_person if form else '') }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="email">Contact Email</label>
+            <input type="email" id="email" name="email" class="form-control" placeholder="enterprise@dell.com" value="{{ vendor.email if action == 'edit' else (form.email if form else '') }}">
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="phone">Phone Number</label>
+            <input type="text" id="phone" name="phone" class="form-control" placeholder="+1-800-456-3355" value="{{ vendor.phone if action == 'edit' else (form.phone if form else '') }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="address">Corporate Address</label>
+        <textarea id="address" name="address" class="form-textarea" placeholder="Physical location, street address, headquarters...">{{ vendor.address if action == 'edit' else (form.address if form else '') }}</textarea>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ url_for('vendors.vendors_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2"></i> Save Vendor
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('vendors.vendors_list') }}" style="display: flex; gap: 12px; flex: 1;">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" name="search" class="form-control" placeholder="Search by vendor name, representative, email, phone..." value="{{ search or '' }}">
+    </div>
+    <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Search</button>
+    {% if search %}
+    <a href="{{ url_for('vendors.vendors_list') }}" class="btn btn-outline">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <a href="{{ url_for('vendors.add_vendor') }}" class="btn btn-primary">
+      <i class="bi bi-shop-window"></i> Add Vendor
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if vendors %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Vendor Name</th>
+            <th>Contact Representative</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Supplied Assets</th>
+            <th>Software Licenses</th>
+            {% if current_user.role == 'admin' %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in vendors %}
+          <tr>
+            <td>
+              <div style="font-weight: 600; color: var(--primary);">{{ v.vendor_name }}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">{{ v.address or '' }}</div>
+            </td>
+            <td>{{ v.contact_person or 'N/A' }}</td>
+            <td>
+              {% if v.email %}
+              <a href="mailto:{{ v.email }}" style="color: inherit;">{{ v.email }}</a>
+              {% else %}-{% endif %}
+            </td>
+            <td>{{ v.phone or '-' }}</td>
+            <td>
+              <span class="badge badge-secondary">{{ v.asset_count }} item(s)</span>
+            </td>
+            <td>
+              <span class="badge badge-secondary">{{ v.license_count }} item(s)</span>
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              <div style="display: flex; gap: 6px;">
+                <a href="{{ url_for('vendors.edit_vendor', id=v.vendor_id) }}" class="btn btn-secondary btn-sm" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <button type="button" class="btn btn-danger btn-sm" 
+                  data-action="confirm-delete" 
+                  data-form-action="{{ url_for('vendors.delete_vendor', id=v.vendor_id) }}" 
+                  data-item-name="{{ v.vendor_name }}" 
+                  title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('vendors.vendors_list', page=pagination.prev_page, search=search) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('vendors.vendors_list', page=pagination.next_page, search=search) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-shop empty-state-icon"></i>
+      <div class="empty-state-title">No Vendors Found</div>
+      <div class="empty-state-text">No vendor suppliers match your search.</div>
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('vendors.add_vendor') }}" class="btn btn-primary">Add Vendor</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

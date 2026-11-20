@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - IT Asset Management Platform{% endblock %}
+{% block header_title %}Operations & Compliance Dashboard{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js 4.4.2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+{% if role == 'employee' %}
+<!-- Employee Welcome Banner & Personal Assets -->
+<div class="card" style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; margin-bottom: 24px;">
+  <div class="card-body" style="padding: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+      <div>
+        <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Employee Workspace &bull; {{ current_user.full_name or current_user.username }}</h2>
+        <p style="opacity: 0.85; font-size: 13.5px;">View your allocated IT equipment, software licenses, and compliance status.</p>
+      </div>
+      <div>
+        <a href="{{ url_for('auth.profile') }}" class="btn btn-secondary" style="color: #0f172a; font-weight: 600;">
+          <i class="bi bi-person-gear"></i> View Full Profile
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-blue">
+      <i class="bi bi-laptop"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">My Assigned Assets</div>
+      <div class="kpi-value">{{ emp_assignments | length }}</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-purple">
+      <i class="bi bi-key"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">My Software Licenses</div>
+      <div class="kpi-value">{{ emp_licenses | length }}</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-green">
+      <i class="bi bi-shield-check"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Account Status</div>
+      <div class="kpi-value" style="font-size: 18px; color: var(--success);">Active</div>
+    </div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-pc-display"></i> My Assigned Hardware Assets</div>
+    </div>
+    <div class="card-body">
+      {% if emp_assignments %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Asset Code</th>
+              <th>Asset Name</th>
+              <th>Category</th>
+              <th>Location</th>
+              <th>Assigned Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in emp_assignments %}
+            <tr>
+              <td><strong>{{ a.asset_code }}</strong></td>
+              <td>{{ a.asset_name }}</td>
+              <td><span class="badge badge-secondary">{{ a.category_name or 'General' }}</span></td>
+              <td>{{ a.location or 'Assigned Desk' }}</td>
+              <td>{{ format_date(a.assigned_date) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding: 24px;">
+        <i class="bi bi-inbox empty-state-icon"></i>
+        <div class="empty-state-title">No Assets Currently Assigned</div>
+        <div class="empty-state-text">You do not have any company hardware assets checked out to you.</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-key-fill"></i> My Software Licenses</div>
+    </div>
+    <div class="card-body">
+      {% if emp_licenses %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Software</th>
+              <th>Publisher</th>
+              <th>Version</th>
+              <th>Allocated Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for l in emp_licenses %}
+            <tr>
+              <td><strong>{{ l.software_name }}</strong></td>
+              <td>{{ l.publisher or 'N/A' }}</td>
+              <td>{{ l.version or 'Standard' }}</td>
+              <td>{{ format_date(l.assigned_date) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding: 24px;">
+        <i class="bi bi-inbox empty-state-icon"></i>
+        <div class="empty-state-title">No Software Licenses Assigned</div>
+        <div class="empty-state-text">You do not have any personal enterprise software seats allocated.</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- 1. Executive Dynamic KPI Metrics from Real MySQL Records -->
+<div class="kpi-grid">
+  <!-- Total Assets -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-blue">
+      <i class="bi bi-boxes"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Total Assets</div>
+      <div class="kpi-value">{{ kpis.total_assets or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Assigned Assets -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-cyan">
+      <i class="bi bi-person-check-fill"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Assigned Assets</div>
+      <div class="kpi-value">{{ kpis.assigned_assets or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Available Assets -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-green">
+      <i class="bi bi-check-circle-fill"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Available Assets</div>
+      <div class="kpi-value">{{ kpis.available_assets or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Maintenance Assets -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-amber">
+      <i class="bi bi-tools"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">In Maintenance</div>
+      <div class="kpi-value">{{ kpis.maintenance_assets or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Total Employees -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-blue">
+      <i class="bi bi-people-fill"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Active Employees</div>
+      <div class="kpi-value">{{ kpis.total_employees or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Total Departments -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-purple">
+      <i class="bi bi-building"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Departments</div>
+      <div class="kpi-value">{{ kpis.total_departments or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Total Software Licenses -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-purple">
+      <i class="bi bi-key-fill"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Total Licenses</div>
+      <div class="kpi-value">{{ kpis.total_software_licenses or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Available Licenses -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-green">
+      <i class="bi bi-check2-circle"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Available Seats</div>
+      <div class="kpi-value">{{ kpis.available_licenses or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Expired Licenses -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-red">
+      <i class="bi bi-clock-history"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Expired Licenses</div>
+      <div class="kpi-value">{{ kpis.expired_licenses or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Open Compliance Alerts -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-red">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Open Alerts</div>
+      <div class="kpi-value">{{ kpis.open_alerts or 0 }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Dynamic Charts Grid -->
+<div class="charts-grid">
+  <!-- Chart 1: Asset Status Distribution -->
+  <div class="chart-card">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-pie-chart-fill"></i> Asset Status Distribution</div>
+    </div>
+    <div class="chart-container">
+      <canvas id="chartAssetStatus"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 2: Assets by Category -->
+  <div class="chart-card">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-bar-chart-fill"></i> Assets by Category</div>
+    </div>
+    <div class="chart-container">
+      <canvas id="chartAssetCategories"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 3: Monthly Asset Purchases & Spend -->
+  <div class="chart-card">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-graph-up"></i> Asset Procurement Spending</div>
+    </div>
+    <div class="chart-container">
+      <canvas id="chartPurchases"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 4: License Status -->
+  <div class="chart-card">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-shield-lock-fill"></i> Software License Status</div>
+    </div>
+    <div class="chart-container">
+      <canvas id="chartLicenses"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Bottom Sections: Expiring Warranties, Expiring Licenses & Recent Activity -->
+<div class="dashboard-columns">
+  <!-- Left Column: Expiring Warranties & Licenses -->
+  <div>
+    <!-- Expiring Warranties -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" style="color: #b45309;">
+          <i class="bi bi-calendar-x"></i> Hardware Warranties Requiring Attention
+        </div>
+        <a href="{{ url_for('assets.assets_list') }}" class="btn btn-outline btn-sm">View All</a>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        {% if expiring_warranties %}
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Asset Code</th>
+                <th>Asset Name</th>
+                <th>Warranty Expiry</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for w in expiring_warranties %}
+              <tr>
+                <td><strong>{{ w.asset_code }}</strong></td>
+                <td>{{ w.asset_name }}</td>
+                <td>{{ format_date(w.warranty_expiry) }}</td>
+                <td>
+                  {% if w.days_left < 0 %}
+                    <span class="badge badge-expired">Expired ({{ w.days_left | abs }}d ago)</span>
+                  {% elif w.days_left <= 30 %}
+                    <span class="badge badge-warning">Expiring in {{ w.days_left }}d</span>
+                  {% else %}
+                    <span class="badge badge-available">In {{ w.days_left }}d</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+          All asset warranties are in good standing.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Expiring Licenses -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" style="color: #b91c1c;">
+          <i class="bi bi-clock-history"></i> Software Licenses Requiring Renewal
+        </div>
+        <a href="{{ url_for('licenses.licenses_list') }}" class="btn btn-outline btn-sm">View All</a>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        {% if expiring_licenses %}
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Software</th>
+                <th>License Key</th>
+                <th>Expiry Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lic in expiring_licenses %}
+              <tr>
+                <td><strong>{{ lic.software_name }}</strong></td>
+                <td><code>{{ lic.license_key or 'Keyless' }}</code></td>
+                <td>{{ format_date(lic.expiry_date) }}</td>
+                <td>
+                  {% if lic.days_left < 0 %}
+                    <span class="badge badge-expired">Expired ({{ lic.days_left | abs }}d ago)</span>
+                  {% elif lic.days_left <= 30 %}
+                    <span class="badge badge-warning">Expiring in {{ lic.days_left }}d</span>
+                  {% else %}
+                    <span class="badge badge-available">In {{ lic.days_left }}d</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+          No software licenses are currently expired or expiring soon.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Recent Audit Activity -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><i class="bi bi-clock-fill"></i> Recent Audit Activity</div>
+        <a href="{{ url_for('reports.report_compliance') }}" class="btn btn-secondary btn-sm">Audit Log</a>
+      </div>
+      <div class="card-body">
+        <div class="activity-list">
+          {% for act in recent_activities %}
+          <div class="activity-item">
+            <div class="activity-badge-dot {% if 'CREATE' in act.action %}dot-green{% elif 'DELETE' in act.action %}dot-red{% elif 'UPDATE' in act.action %}dot-blue{% else %}dot-amber{% endif %}"></div>
+            <div class="activity-content">
+              <div class="activity-desc">{{ act.description }}</div>
+              <div class="activity-meta">
+                <span><i class="bi bi-person"></i> {{ act.user_name or act.username or 'System' }}</span>
+                <span>&bull;</span>
+                <span>{{ format_date(act.created_at, "%b %d, %H:%M") }}</span>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div style="text-align: center; color: var(--text-muted); padding: 20px;">No recent audit events.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Server-rendered MySQL data transferred into window objects for Chart.js
+  window.chartAssetStatusData = {{ chart_asset_status | tojson }};
+  window.chartCategoriesData = {{ chart_categories | tojson }};
+  window.chartPurchasesData = {{ chart_purchases | tojson }};
+  window.chartLicensesData = {{ chart_licenses | tojson }};
+  window.chartComplianceData = {{ chart_compliance | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

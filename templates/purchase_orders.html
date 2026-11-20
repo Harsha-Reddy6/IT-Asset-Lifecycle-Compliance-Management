@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Purchase Orders - IT Asset Management Platform{% endblock %}
+{% block header_title %}IT Procurement & Purchase Orders{% endblock %}
+
+{% block content %}
+
+{% if action == 'add' or action == 'edit' %}
+<div class="card" style="max-width: 680px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-receipt"></i>
+      {% if action == 'add' %}Create Purchase Order{% else %}Edit Purchase Order: {{ order.order_number }}{% endif %}
+    </div>
+    <a href="{{ url_for('purchase_orders.purchase_orders_list') }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to Orders
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{% if action == 'add' %}{{ url_for('purchase_orders.add_purchase_order') }}{% else %}{{ url_for('purchase_orders.edit_purchase_order', id=order.purchase_order_id) }}{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="order_number">PO Number <span class="required">*</span></label>
+            <input type="text" id="order_number" name="order_number" class="form-control" placeholder="e.g. PO-2026-0042" value="{{ order.order_number if action == 'edit' else (form.order_number if form else '') }}" {% if action == 'edit' %}readonly style="background-color: #f1f5f9;"{% else %}required autofocus{% endif %}>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="vendor_id">Vendor Partner</label>
+            <select id="vendor_id" name="vendor_id" class="form-select">
+              <option value="">-- Select Vendor --</option>
+              {% for v in vendors %}
+              <option value="{{ v.vendor_id }}" {% if (action == 'edit' and order.vendor_id == v.vendor_id) or (form and form.vendor_id == v.vendor_id|string) %}selected{% endif %}>
+                {{ v.vendor_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="order_date">Order Date</label>
+            <input type="date" id="order_date" name="order_date" class="form-control" value="{{ order.order_date if action == 'edit' else (form.order_date if form else '') }}">
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="total_amount">Total Amount ($)</label>
+            <input type="number" step="0.01" min="0" id="total_amount" name="total_amount" class="form-control" placeholder="0.00" value="{{ order.total_amount if action == 'edit' else (form.total_amount if form else '') }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="order_status">Order Status</label>
+        <select id="order_status" name="order_status" class="form-select">
+          <option value="Pending" {% if (action == 'edit' and order.order_status == 'Pending') or (form and form.order_status == 'Pending') %}selected{% endif %}>Pending</option>
+          <option value="Approved" {% if (action == 'edit' and order.order_status == 'Approved') or (form and form.order_status == 'Approved') %}selected{% endif %}>Approved</option>
+          <option value="Received" {% if (action == 'edit' and order.order_status == 'Received') or (form and form.order_status == 'Received') %}selected{% endif %}>Received</option>
+          <option value="Cancelled" {% if (action == 'edit' and order.order_status == 'Cancelled') or (form and form.order_status == 'Cancelled') %}selected{% endif %}>Cancelled</option>
+        </select>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ url_for('purchase_orders.purchase_orders_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2"></i> Save Purchase Order
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('purchase_orders.purchase_orders_list') }}" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" name="search" class="form-control" placeholder="Search by PO number or vendor..." value="{{ search or '' }}">
+    </div>
+
+    <div class="filter-group">
+      <select name="status" class="form-select" style="min-width: 150px;">
+        <option value="">All Statuses</option>
+        <option value="Pending" {% if selected_status == 'Pending' %}selected{% endif %}>Pending</option>
+        <option value="Approved" {% if selected_status == 'Approved' %}selected{% endif %}>Approved</option>
+        <option value="Received" {% if selected_status == 'Received' %}selected{% endif %}>Received</option>
+        <option value="Cancelled" {% if selected_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+      </select>
+
+      <button type="submit" class="btn btn-secondary"><i class="bi bi-funnel"></i> Filter</button>
+      {% if search or selected_status %}
+      <a href="{{ url_for('purchase_orders.purchase_orders_list') }}" class="btn btn-outline">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <a href="{{ url_for('purchase_orders.add_purchase_order') }}" class="btn btn-primary">
+      <i class="bi bi-receipt-cutoff"></i> Create Purchase Order
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if orders %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>PO Number</th>
+            <th>Vendor Supplier</th>
+            <th>Contact Person</th>
+            <th>Order Date</th>
+            <th>Total Value</th>
+            <th>Status</th>
+            {% if current_user.role == 'admin' %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for po in orders %}
+          <tr>
+            <td>
+              <strong style="color: var(--primary);">{{ po.order_number }}</strong>
+            </td>
+            <td>{{ po.vendor_name or 'Direct Purchase' }}</td>
+            <td>{{ po.contact_person or '-' }}</td>
+            <td>{{ format_date(po.order_date) }}</td>
+            <td><strong>{{ format_currency(po.total_amount) }}</strong></td>
+            <td>
+              <span class="badge badge-{{ 'completed' if po.order_status == 'Received' else ('assigned' if po.order_status == 'Approved' else ('maintenance' if po.order_status == 'Pending' else 'retired')) }}">
+                {{ po.order_status }}
+              </span>
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              <a href="{{ url_for('purchase_orders.edit_purchase_order', id=po.purchase_order_id) }}" class="btn btn-secondary btn-sm" title="Edit Order">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('purchase_orders.purchase_orders_list', page=pagination.prev_page, search=search, status=selected_status) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('purchase_orders.purchase_orders_list', page=pagination.next_page, search=search, status=selected_status) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-receipt empty-state-icon"></i>
+      <div class="empty-state-title">No Purchase Orders Found</div>
+      <div class="empty-state-text">No procurement orders match your filter criteria.</div>
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('purchase_orders.add_purchase_order') }}" class="btn btn-primary">Create Purchase Order</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

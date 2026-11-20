@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Asset Allocation - IT Asset Management Platform{% endblock %}
+{% block header_title %}Asset Allocation & Checkout History{% endblock %}
+
+{% block content %}
+
+<!-- ==================== ADD ALLOCATION MODE ==================== -->
+{% if action == 'add' %}
+<div class="card" style="max-width: 680px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-box-arrow-right"></i> Allocate Asset to Employee
+    </div>
+    <a href="{{ url_for('assignments.assignments_list') }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to Allocation List
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('assignments.add_assignment') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label class="form-label" for="asset_id">Select Available Hardware Asset <span class="required">*</span></label>
+        <select id="asset_id" name="asset_id" class="form-select" required>
+          <option value="">-- Select Available Asset --</option>
+          {% for a in available_assets %}
+          <option value="{{ a.asset_id }}" {% if form and form.asset_id == a.asset_id|string %}selected{% endif %}>
+            {{ a.asset_name }} ({{ a.asset_code }}) &bull; {{ a.brand or '' }} {{ a.model_number or '' }}
+          </option>
+          {% endfor %}
+        </select>
+        {% if not available_assets %}
+        <div class="form-hint" style="color: var(--danger);">
+          No assets are currently available for allocation. <a href="{{ url_for('assets.add_asset') }}">Register an asset</a> or return an existing one.
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="employee_id">Select Employee Recipient <span class="required">*</span></label>
+        <select id="employee_id" name="employee_id" class="form-select" required>
+          <option value="">-- Select Active Employee --</option>
+          {% for emp in active_employees %}
+          <option value="{{ emp.employee_id }}" {% if form and form.employee_id == emp.employee_id|string %}selected{% endif %}>
+            {{ emp.full_name }} ({{ emp.employee_code }}) &bull; {{ emp.email }}
+          </option>
+          {% endfor %}
+        </select>
+        {% if not active_employees %}
+        <div class="form-hint" style="color: var(--danger);">
+          No active employees found. <a href="{{ url_for('employees.add_employee') }}">Add an employee first</a>.
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="remarks">Assignment Remarks / Purpose</label>
+        <textarea id="remarks" name="remarks" class="form-textarea" placeholder="e.g. Standard workstation provisioning for Engineering onboarding...">{{ form.remarks if form else '' }}</textarea>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ url_for('assignments.assignments_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary" {% if not available_assets or not active_employees %}disabled{% endif %}>
+          <i class="bi bi-box-arrow-right"></i> Confirm Allocation
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ==================== MAIN ALLOCATION LIST ==================== -->
+{% else %}
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('assignments.assignments_list') }}" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" name="search" class="form-control" placeholder="Search by asset, code, employee, employee code..." value="{{ search or '' }}">
+    </div>
+
+    <div class="filter-group">
+      <select name="status" id="assignmentStatusFilter" class="form-select" style="min-width: 150px;">
+        <option value="">All Statuses</option>
+        <option value="Assigned" {% if selected_status == 'Assigned' %}selected{% endif %}>Currently Assigned</option>
+        <option value="Returned" {% if selected_status == 'Returned' %}selected{% endif %}>Returned</option>
+      </select>
+
+      <button type="submit" class="btn btn-secondary"><i class="bi bi-funnel"></i> Filter</button>
+      {% if search or selected_status %}
+      <a href="{{ url_for('assignments.assignments_list') }}" class="btn btn-outline">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <a href="{{ url_for('assignments.add_assignment') }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg"></i> Allocate Asset
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if assignments %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Asset</th>
+            <th>Employee</th>
+            <th>Department</th>
+            <th>Assigned Date</th>
+            <th>Return Date</th>
+            <th>Status</th>
+            <th>Remarks</th>
+            {% if current_user.role == 'admin' %}<th>Action</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assignments %}
+          <tr>
+            <td>
+              <div style="font-weight: 600;">{{ a.asset_name }}</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">{{ a.asset_code }} &bull; {{ a.serial_number or '-' }}</div>
+            </td>
+            <td>
+              <div style="font-weight: 600;">{{ a.employee_name }}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">{{ a.employee_code }}</div>
+            </td>
+            <td>{{ a.department_name or 'N/A' }}</td>
+            <td>{{ format_date(a.assigned_date) }}</td>
+            <td>{{ format_date(a.return_date) if a.return_date else 'Active Assignment' }}</td>
+            <td>
+              <span class="badge badge-{{ 'assigned' if a.assignment_status == 'Assigned' else 'available' }}">
+                {{ a.assignment_status }}
+              </span>
+            </td>
+            <td style="max-width: 200px; font-size: 12px; color: var(--text-muted);">
+              {{ a.remarks or '-' }}
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              {% if a.assignment_status == 'Assigned' %}
+              <button type="button" class="btn btn-secondary btn-sm" 
+                data-action="return-asset" 
+                data-assignment-id="{{ a.assignment_id }}" 
+                data-asset-info="{{ a.asset_name }} ({{ a.asset_code }}) from {{ a.employee_name }}"
+                title="Process Asset Return">
+                <i class="bi bi-box-arrow-in-left"></i> Return
+              </button>
+              {% else %}
+              <span style="color: var(--text-muted); font-size: 12px;"><i class="bi bi-check2"></i> Returned</span>
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('assignments.assignments_list', page=pagination.prev_page, search=search, status=selected_status) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('assignments.assignments_list', page=pagination.next_page, search=search, status=selected_status) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-box-arrow-right empty-state-icon"></i>
+      <div class="empty-state-title">No Asset Allocations Found</div>
+      <div class="empty-state-text">No asset checkouts match the current search.</div>
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('assignments.add_assignment') }}" class="btn btn-primary">Allocate an Asset</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Asset Return Modal -->
+<div class="modal-backdrop" id="returnAssetModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+        <i class="bi bi-box-arrow-in-left"></i> Return Hardware Asset
+      </div>
+      <button class="modal-close-btn">&times;</button>
+    </div>
+    <form id="returnAssetForm" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body">
+        <p style="margin-bottom: 12px;">Returning: <strong id="returnAssetLabel">Asset</strong></p>
+        <div class="form-group">
+          <label class="form-label" for="return_remarks">Return Notes / Device Condition</label>
+          <textarea id="return_remarks" name="remarks" class="form-textarea" placeholder="e.g. Device returned in clean working order with power brick and case..."></textarea>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted);">
+          Submitting will mark the assignment as Returned and return the hardware asset status to <strong>Available</strong>.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-success">Confirm Asset Return</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/assignments.js') }}"></script>
+{% endblock %}

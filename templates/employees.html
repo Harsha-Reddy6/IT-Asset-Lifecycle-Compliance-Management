@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Employees - IT Asset Management Platform{% endblock %}
+{% block header_title %}Organization Employees Directory{% endblock %}
+
+{% block content %}
+
+<!-- If Add or Edit Mode -->
+{% if action == 'add' or action == 'edit' %}
+<div class="card" style="max-width: 720px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-person-{% if action == 'add' %}plus{% else %}gear{% endif %}-fill"></i>
+      {% if action == 'add' %}Add New Employee{% else %}Edit Employee: {{ employee.full_name }}{% endif %}
+    </div>
+    <a href="{{ url_for('employees.employees_list') }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to Directory
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{% if action == 'add' %}{{ url_for('employees.add_employee') }}{% else %}{{ url_for('employees.edit_employee', id=employee.employee_id) }}{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="full_name">Full Name <span class="required">*</span></label>
+            <input type="text" id="full_name" name="full_name" class="form-control" placeholder="e.g. Michael Scott" value="{{ employee.full_name if action == 'edit' else (form.full_name if form else '') }}" required>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="email">Work Email <span class="required">*</span></label>
+            <input type="email" id="email" name="email" class="form-control" placeholder="mscott@organization.com" value="{{ employee.email if action == 'edit' else (form.email if form else '') }}" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="employee_code">Employee Code <span class="required">*</span></label>
+            <input type="text" id="employee_code" name="employee_code" class="form-control" placeholder="e.g. EMP-0100" value="{{ employee.employee_code if action == 'edit' else (form.employee_code if form else '') }}" {% if action == 'edit' %}readonly style="background-color: #f1f5f9;"{% else %}required{% endif %}>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="department_id">Department</label>
+            <select id="department_id" name="department_id" class="form-select">
+              <option value="">-- Select Department --</option>
+              {% for d in departments %}
+              <option value="{{ d.department_id }}" {% if (action == 'edit' and employee.department_id == d.department_id) or (form and form.department_id == d.department_id|string) %}selected{% endif %}>
+                {{ d.department_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="designation">Designation / Job Title</label>
+            <input type="text" id="designation" name="designation" class="form-control" placeholder="e.g. Cloud Architect" value="{{ employee.designation if action == 'edit' else (form.designation if form else '') }}">
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="joining_date">Joining Date</label>
+            <input type="date" id="joining_date" name="joining_date" class="form-control" value="{{ employee.joining_date if action == 'edit' else (form.joining_date if form else '') }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="employee_status">Employment Status</label>
+            <select id="employee_status" name="employee_status" class="form-select">
+              <option value="Active" {% if (action == 'edit' and employee.employee_status == 'Active') or (form and form.employee_status == 'Active') %}selected{% endif %}>Active</option>
+              <option value="Inactive" {% if (action == 'edit' and employee.employee_status == 'Inactive') or (form and form.employee_status == 'Inactive') %}selected{% endif %}>Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="user_id">Link User Login Account</label>
+            <select id="user_id" name="user_id" class="form-select">
+              <option value="">-- None (No login access) --</option>
+              {% for u in unlinked_users %}
+              <option value="{{ u.id }}" {% if (action == 'edit' and employee.user_id == u.id) or (form and form.user_id == u.id|string) %}selected{% endif %}>
+                {{ u.username }} ({{ u.email }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ url_for('employees.employees_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2-circle"></i> Save Employee Record
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<!-- Main Employee List View -->
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('employees.employees_list') }}" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" name="search" class="form-control" placeholder="Search by name, code, email, designation..." value="{{ search or '' }}">
+    </div>
+
+    <div class="filter-group">
+      <select name="dept_id" id="empDeptFilter" class="form-select" style="min-width: 180px;">
+        <option value="">All Departments</option>
+        {% for d in departments %}
+        <option value="{{ d.department_id }}" {% if selected_dept == d.department_id|string %}selected{% endif %}>{{ d.department_name }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="status" id="empStatusFilter" class="form-select" style="min-width: 140px;">
+        <option value="">All Statuses</option>
+        <option value="Active" {% if selected_status == 'Active' %}selected{% endif %}>Active</option>
+        <option value="Inactive" {% if selected_status == 'Inactive' %}selected{% endif %}>Inactive</option>
+      </select>
+
+      <button type="submit" class="btn btn-secondary"><i class="bi bi-funnel"></i> Filter</button>
+      {% if search or selected_dept or selected_status %}
+      <a href="{{ url_for('employees.employees_list') }}" class="btn btn-outline">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <a href="{{ url_for('employees.add_employee') }}" class="btn btn-primary">
+      <i class="bi bi-person-plus"></i> Add Employee
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if employees %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Employee Code</th>
+            <th>Name</th>
+            <th>Department</th>
+            <th>Designation</th>
+            <th>Joining Date</th>
+            <th>Hardware Assets</th>
+            <th>Software Licenses</th>
+            <th>Status</th>
+            {% if current_user.role == 'admin' %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for emp in employees %}
+          <tr>
+            <td><strong>{{ emp.employee_code }}</strong></td>
+            <td>
+              <div style="font-weight: 600;">{{ emp.full_name }}</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">{{ emp.email }}</div>
+            </td>
+            <td>
+              {% if emp.department_name %}
+              <span class="badge badge-secondary">{{ emp.department_name }}</span>
+              {% else %}
+              <span style="color: var(--text-muted); font-size: 12px;">Unassigned</span>
+              {% endif %}
+            </td>
+            <td>{{ emp.designation or 'N/A' }}</td>
+            <td>{{ format_date(emp.joining_date) }}</td>
+            <td>
+              {% if emp.assigned_assets_count > 0 %}
+              <span class="badge badge-assigned">{{ emp.assigned_assets_count }} item(s)</span>
+              {% else %}
+              <span style="color: var(--text-muted); font-size: 12px;">0</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if emp.assigned_licenses_count > 0 %}
+              <span class="badge badge-info">{{ emp.assigned_licenses_count }} seat(s)</span>
+              {% else %}
+              <span style="color: var(--text-muted); font-size: 12px;">0</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge badge-{{ 'active' if emp.employee_status == 'Active' else 'inactive' }}">
+                {{ emp.employee_status }}
+              </span>
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              <div style="display: flex; gap: 6px;">
+                <a href="{{ url_for('employees.edit_employee', id=emp.employee_id) }}" class="btn btn-secondary btn-sm" title="Edit Employee">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <button type="button" class="btn btn-danger btn-sm" 
+                  data-action="confirm-delete" 
+                  data-form-action="{{ url_for('employees.delete_employee', id=emp.employee_id) }}" 
+                  data-item-name="{{ emp.full_name }} ({{ emp.employee_code }})" 
+                  title="Delete Employee">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('employees.employees_list', page=pagination.prev_page, search=search, dept_id=selected_dept, status=selected_status) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('employees.employees_list', page=pagination.next_page, search=search, dept_id=selected_dept, status=selected_status) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-people empty-state-icon"></i>
+      <div class="empty-state-title">No Employees Found</div>
+      <div class="empty-state-text">No employee records match your search or filter criteria.</div>
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('employees.add_employee') }}" class="btn btn-primary">
+        <i class="bi bi-person-plus"></i> Add First Employee
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/employees.js') }}"></script>
+{% endblock %}

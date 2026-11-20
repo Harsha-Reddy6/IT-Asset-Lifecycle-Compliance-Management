@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}License Allocation - IT Asset Management Platform{% endblock %}
+{% block header_title %}Software License Seat Allocations{% endblock %}
+
+{% block content %}
+
+{% if action == 'add' %}
+<div class="card" style="max-width: 680px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-person-check-fill"></i> Allocate Software License Seat
+    </div>
+    <a href="{{ url_for('license_assignments.license_assignments_list') }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to Seat Allocations
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('license_assignments.add_license_assignment') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label class="form-label" for="license_id">Select Software License <span class="required">*</span></label>
+        <select id="license_id" name="license_id" class="form-select" required>
+          <option value="">-- Select Active License --</option>
+          {% for lic in active_licenses %}
+          <option value="{{ lic.license_id }}" {% if form and form.license_id == lic.license_id|string %}selected{% endif %}>
+            {{ lic.software_name }} ({{ lic.version or 'Standard' }}) &bull; {{ lic.available_seats }} seat(s) available
+          </option>
+          {% endfor %}
+        </select>
+        {% if not active_licenses %}
+        <div class="form-hint" style="color: var(--danger);">
+          No active licenses with available seats. <a href="{{ url_for('licenses.add_license') }}">Add a new license</a> or revoke an existing seat.
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="employee_id">Select Employee Recipient <span class="required">*</span></label>
+        <select id="employee_id" name="employee_id" class="form-select" required>
+          <option value="">-- Select Active Employee --</option>
+          {% for emp in active_employees %}
+          <option value="{{ emp.employee_id }}" {% if form and form.employee_id == emp.employee_id|string %}selected{% endif %}>
+            {{ emp.full_name }} ({{ emp.employee_code }}) &bull; {{ emp.email }}
+          </option>
+          {% endfor %}
+        </select>
+        {% if not active_employees %}
+        <div class="form-hint" style="color: var(--danger);">
+          No active employees found. <a href="{{ url_for('employees.add_employee') }}">Add an employee first</a>.
+        </div>
+        {% endif %}
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ url_for('license_assignments.license_assignments_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary" {% if not active_licenses or not active_employees %}disabled{% endif %}>
+          <i class="bi bi-person-check"></i> Confirm Seat Allocation
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('license_assignments.license_assignments_list') }}" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" name="search" class="form-control" placeholder="Search by software name, employee, code..." value="{{ search or '' }}">
+    </div>
+
+    <div class="filter-group">
+      <select name="status" id="licenseStatusFilter" class="form-select" style="min-width: 150px;">
+        <option value="">All Statuses</option>
+        <option value="Assigned" {% if selected_status == 'Assigned' %}selected{% endif %}>Currently Assigned</option>
+        <option value="Returned" {% if selected_status == 'Returned' %}selected{% endif %}>Returned / Revoked</option>
+      </select>
+
+      <button type="submit" class="btn btn-secondary"><i class="bi bi-funnel"></i> Filter</button>
+      {% if search or selected_status %}
+      <a href="{{ url_for('license_assignments.license_assignments_list') }}" class="btn btn-outline">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <a href="{{ url_for('license_assignments.add_license_assignment') }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg"></i> Allocate Seat
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if assignments %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Software Product</th>
+            <th>License Key</th>
+            <th>Employee</th>
+            <th>Department</th>
+            <th>Allocated Date</th>
+            <th>Return Date</th>
+            <th>Status</th>
+            {% if current_user.role == 'admin' %}<th>Action</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assignments %}
+          <tr>
+            <td>
+              <div style="font-weight: 600; color: var(--primary);">{{ a.software_name }}</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">{{ a.version or 'Standard' }}</div>
+            </td>
+            <td><code>{{ a.license_key or 'Keyless' }}</code></td>
+            <td>
+              <div style="font-weight: 600;">{{ a.employee_name }}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">{{ a.employee_code }} &bull; {{ a.employee_email }}</div>
+            </td>
+            <td>{{ a.department_name or 'N/A' }}</td>
+            <td>{{ format_date(a.assigned_date) }}</td>
+            <td>{{ format_date(a.return_date) if a.return_date else 'Active Entitlement' }}</td>
+            <td>
+              <span class="badge badge-{{ 'assigned' if a.assignment_status == 'Assigned' else 'available' }}">
+                {{ a.assignment_status }}
+              </span>
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              {% if a.assignment_status == 'Assigned' %}
+              <button type="button" class="btn btn-secondary btn-sm"
+                data-action="return-license"
+                data-assignment-id="{{ a.license_assignment_id }}"
+                data-license-info="{{ a.software_name }} from {{ a.employee_name }}"
+                title="Revoke License Seat">
+                <i class="bi bi-arrow-return-left"></i> Revoke
+              </button>
+              {% else %}
+              <span style="color: var(--text-muted); font-size: 12px;"><i class="bi bi-check2"></i> Revoked</span>
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('license_assignments.license_assignments_list', page=pagination.prev_page, search=search, status=selected_status) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('license_assignments.license_assignments_list', page=pagination.next_page, search=search, status=selected_status) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-person-check empty-state-icon"></i>
+      <div class="empty-state-title">No License Allocations Found</div>
+      <div class="empty-state-text">No software license seat allocations match your search.</div>
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('license_assignments.add_license_assignment') }}" class="btn btn-primary">Allocate a Seat</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- License Return Modal -->
+<div class="modal-backdrop" id="returnLicenseModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+        <i class="bi bi-arrow-return-left"></i> Revoke License Seat
+      </div>
+      <button class="modal-close-btn">&times;</button>
+    </div>
+    <form id="returnLicenseForm" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-body">
+        <p style="margin-bottom: 12px;">Are you sure you want to revoke the license seat for: <strong id="returnLicenseLabel">License</strong>?</p>
+        <p style="font-size: 12px; color: var(--text-muted);">
+          Revoking will release this seat and immediately increase available capacity for this software license.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-warning">Confirm Revocation</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/licenses.js') }}"></script>
+{% endblock %}

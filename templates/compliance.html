@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Compliance & Governance - IT Asset Management Platform{% endblock %}
+{% block header_title %}License Compliance & Warranty Alerts{% endblock %}
+
+{% block content %}
+
+<!-- Compliance Metric Cards -->
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-red">
+      <i class="bi bi-exclamation-octagon-fill"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Total Open Alerts</div>
+      <div class="kpi-value" style="color: var(--danger);">{{ stats.open_alerts }}</div>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-red">
+      <i class="bi bi-x-circle-fill"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Expired Items</div>
+      <div class="kpi-value">{{ stats.expired_count }}</div>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-amber">
+      <i class="bi bi-clock-history"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Expiring within 30d</div>
+      <div class="kpi-value">{{ stats.expiring_soon_count }}</div>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-green">
+      <i class="bi bi-check-circle-fill"></i>
+    </div>
+    <div class="kpi-details">
+      <div class="kpi-label">Resolved Audits</div>
+      <div class="kpi-value">{{ stats.resolved_alerts }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Compliance Toolbar with Scan Button -->
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('compliance.compliance_dashboard') }}" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+    <div class="filter-group">
+      <select name="status" id="complianceStatusFilter" class="form-select" style="min-width: 150px;">
+        <option value="Open" {% if selected_status == 'Open' %}selected{% endif %}>Open Violations</option>
+        <option value="Resolved" {% if selected_status == 'Resolved' %}selected{% endif %}>Resolved Audits</option>
+        <option value="All" {% if selected_status == 'All' %}selected{% endif %}>All Records</option>
+      </select>
+
+      <select name="type" id="complianceTypeFilter" class="form-select" style="min-width: 200px;">
+        <option value="All" {% if selected_type == 'All' %}selected{% endif %}>All Alert Types</option>
+        <option value="License Expired" {% if selected_type == 'License Expired' %}selected{% endif %}>License Expired</option>
+        <option value="License Expiring Soon" {% if selected_type == 'License Expiring Soon' %}selected{% endif %}>License Expiring Soon</option>
+        <option value="Warranty Expired" {% if selected_type == 'Warranty Expired' %}selected{% endif %}>Warranty Expired</option>
+        <option value="Warranty Expiring Soon" {% if selected_type == 'Warranty Expiring Soon' %}selected{% endif %}>Warranty Expiring Soon</option>
+      </select>
+
+      <button type="submit" class="btn btn-secondary"><i class="bi bi-funnel"></i> Filter</button>
+      {% if selected_status != 'Open' or selected_type != 'All' %}
+      <a href="{{ url_for('compliance.compliance_dashboard') }}" class="btn btn-outline">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <form method="POST" action="{{ url_for('compliance.compliance_dashboard') }}" style="display: inline;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-arrow-repeat"></i> Run Automated Compliance Scan
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Alerts Table -->
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if alerts %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Alert ID</th>
+            <th>Violation Type</th>
+            <th>Target Item</th>
+            <th>Compliance Advisory Details</th>
+            <th>Logged Date</th>
+            <th>Status</th>
+            {% if current_user.role == 'admin' %}<th>Action</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in alerts %}
+          <tr>
+            <td><strong>#{{ a.alert_id }}</strong></td>
+            <td>
+              {% if 'Expired' in a.alert_type %}
+              <span class="badge badge-expired"><i class="bi bi-x-circle"></i> {{ a.alert_type }}</span>
+              {% else %}
+              <span class="badge badge-warning"><i class="bi bi-exclamation-triangle"></i> {{ a.alert_type }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if a.asset_code %}
+              <div style="font-weight: 600;">Hardware: {{ a.asset_name }}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">{{ a.asset_code }}</div>
+              {% elif a.software_name %}
+              <div style="font-weight: 600;">Software: {{ a.software_name }}</div>
+              <div style="font-size: 11px; color: var(--text-muted);"><code>{{ a.license_key or 'Keyless' }}</code></div>
+              {% else %}
+              <span style="color: var(--text-muted); font-size: 12px;">General Asset</span>
+              {% endif %}
+            </td>
+            <td style="max-width: 340px; font-size: 12.5px;">
+              {{ a.alert_message }}
+            </td>
+            <td>{{ format_date(a.alert_date, "%b %d, %Y %H:%M") }}</td>
+            <td>
+              <span class="badge badge-{{ 'expired' if a.alert_status == 'Open' else 'available' }}">
+                {{ a.alert_status }}
+              </span>
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              {% if a.alert_status == 'Open' %}
+              <form method="POST" action="{{ url_for('compliance.resolve_alert_route', id=a.alert_id) }}" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-success btn-sm" title="Mark as Resolved">
+                  <i class="bi bi-check2"></i> Resolve
+                </button>
+              </form>
+              {% else %}
+              <span style="color: var(--success); font-size: 12px;"><i class="bi bi-check-all"></i> Resolved</span>
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('compliance.compliance_dashboard', page=pagination.prev_page, status=selected_status, type=selected_type) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('compliance.compliance_dashboard', page=pagination.next_page, status=selected_status, type=selected_type) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-shield-check empty-state-icon" style="color: var(--success);"></i>
+      <div class="empty-state-title">No Compliance Alerts</div>
+      <div class="empty-state-text">No active warranty or license violations match the current filter.</div>
+      {% if current_user.role == 'admin' %}
+      <form method="POST" action="{{ url_for('compliance.compliance_dashboard') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-secondary btn-sm">Re-run Compliance Scan</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/compliance.js') }}"></script>
+{% endblock %}

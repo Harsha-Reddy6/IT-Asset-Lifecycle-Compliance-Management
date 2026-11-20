@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Asset Categories - IT Asset Management Platform{% endblock %}
+{% block header_title %}Asset Categories{% endblock %}
+
+{% block content %}
+
+{% if action == 'add' or action == 'edit' %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-tag-fill"></i>
+      {% if action == 'add' %}Create Category{% else %}Edit Category: {{ category.category_name }}{% endif %}
+    </div>
+    <a href="{{ url_for('categories.categories_list') }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to Categories
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{% if action == 'add' %}{{ url_for('categories.add_category') }}{% else %}{{ url_for('categories.edit_category', id=category.category_id) }}{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label class="form-label" for="category_name">Category Name <span class="required">*</span></label>
+        <input type="text" id="category_name" name="category_name" class="form-control" placeholder="e.g. Laptops, Networking, Monitors" value="{{ category.category_name if action == 'edit' else (form.category_name if form else '') }}" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="description">Description</label>
+        <textarea id="description" name="description" class="form-textarea" placeholder="Types of devices or equipment included in this classification...">{{ category.description if action == 'edit' else (form.description if form else '') }}</textarea>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ url_for('categories.categories_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2"></i> Save Category
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('categories.categories_list') }}" style="display: flex; gap: 12px; flex: 1;">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" name="search" class="form-control" placeholder="Search categories..." value="{{ search or '' }}">
+    </div>
+    <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Search</button>
+    {% if search %}
+    <a href="{{ url_for('categories.categories_list') }}" class="btn btn-outline">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <a href="{{ url_for('categories.add_category') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> Add Category
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if categories %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Category Name</th>
+            <th>Description</th>
+            <th>Tracked Assets</th>
+            {% if current_user.role == 'admin' %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in categories %}
+          <tr>
+            <td>
+              <div style="font-weight: 600; color: var(--primary);">{{ cat.category_name }}</div>
+            </td>
+            <td>{{ cat.description or 'No description provided.' }}</td>
+            <td>
+              <span class="badge badge-secondary">{{ cat.asset_count }} asset(s)</span>
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              <div style="display: flex; gap: 6px;">
+                <a href="{{ url_for('categories.edit_category', id=cat.category_id) }}" class="btn btn-secondary btn-sm" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <button type="button" class="btn btn-danger btn-sm" 
+                  data-action="confirm-delete" 
+                  data-form-action="{{ url_for('categories.delete_category', id=cat.category_id) }}" 
+                  data-item-name="{{ cat.category_name }}" 
+                  title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('categories.categories_list', page=pagination.prev_page, search=search) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('categories.categories_list', page=pagination.next_page, search=search) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-tags empty-state-icon"></i>
+      <div class="empty-state-title">No Categories Found</div>
+      <div class="empty-state-text">No asset categories exist yet.</div>
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('categories.add_category') }}" class="btn btn-primary">Create First Category</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

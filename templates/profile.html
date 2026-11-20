@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - IT Asset Management Platform{% endblock %}
+{% block header_title %}User Profile & Assigned Entitlements{% endblock %}
+
+{% block content %}
+
+<div class="charts-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 24px;">
+  <!-- User Profile Card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-person-circle"></i> Profile Information</div>
+      <span class="badge role-{{ user.role }}">{{ user.role | upper }}</span>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('auth.profile') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="update_info">
+
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" class="form-control" value="{{ user.username }}" readonly style="background-color: #f1f5f9;">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="full_name">Full Name <span class="required">*</span></label>
+          <input type="text" id="full_name" name="full_name" class="form-control" value="{{ user.full_name }}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address <span class="required">*</span></label>
+          <input type="email" id="email" name="email" class="form-control" value="{{ user.email }}" required>
+        </div>
+
+        {% if employee %}
+        <div style="background: #f8fafc; padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 16px;">
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 6px;">Associated Employee Profile</div>
+          <div><strong>Employee Code:</strong> {{ employee.employee_code }}</div>
+          <div><strong>Department:</strong> {{ employee.department_name or 'Unassigned' }}</div>
+          <div><strong>Designation:</strong> {{ employee.designation or 'Staff' }}</div>
+          <div><strong>Member Since:</strong> {{ format_date(employee.joining_date or user.created_at) }}</div>
+        </div>
+        {% endif %}
+
+        <div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check2"></i> Update Profile Details
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Change Password Card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-shield-lock"></i> Security & Password</div>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('auth.profile') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="change_password">
+
+        <div class="form-group">
+          <label class="form-label" for="current_password">Current Password <span class="required">*</span></label>
+          <input type="password" id="current_password" name="current_password" class="form-control" placeholder="••••••••" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="new_password">New Password <span class="required">*</span></label>
+          <input type="password" id="new_password" name="new_password" class="form-control" placeholder="Minimum 6 characters" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="confirm_new_password">Confirm New Password <span class="required">*</span></label>
+          <input type="password" id="confirm_new_password" name="confirm_new_password" class="form-control" placeholder="Repeat new password" required>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <button type="submit" class="btn btn-secondary">
+            <i class="bi bi-key"></i> Change Password
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- My Assigned Assets Table -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <div class="card-title"><i class="bi bi-laptop"></i> My Assigned Hardware Assets ({{ my_assets | length }})</div>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    {% if my_assets %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Asset Code</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Brand & Model</th>
+            <th>Serial Number</th>
+            <th>Assigned Date</th>
+            <th>Location</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in my_assets %}
+          <tr>
+            <td><strong>{{ a.asset_code }}</strong></td>
+            <td>{{ a.asset_name }}</td>
+            <td><span class="badge badge-secondary">{{ a.category_name or 'General' }}</span></td>
+            <td>{{ a.brand or '' }} {{ a.model_number or '' }}</td>
+            <td><code>{{ a.serial_number or '-' }}</code></td>
+            <td>{{ format_date(a.assigned_date) }}</td>
+            <td>{{ a.location or 'Desk' }}</td>
+            <td style="font-size: 12px; color: var(--text-muted);">{{ a.remarks or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 30px;">
+      <i class="bi bi-laptop empty-state-icon"></i>
+      <div class="empty-state-title">No Assets Assigned</div>
+      <div class="empty-state-text">You do not currently have any physical hardware assigned to your employee account.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- My Assigned Licenses Table -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="bi bi-key"></i> My Assigned Software Licenses ({{ my_licenses | length }})</div>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    {% if my_licenses %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Software Product</th>
+            <th>Publisher</th>
+            <th>Version</th>
+            <th>License Key</th>
+            <th>Allocated Date</th>
+            <th>Expiry Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in my_licenses %}
+          <tr>
+            <td><strong>{{ l.software_name }}</strong></td>
+            <td>{{ l.publisher or 'N/A' }}</td>
+            <td>{{ l.version or 'Standard' }}</td>
+            <td><code>{{ l.license_key or 'Keyless' }}</code></td>
+            <td>{{ format_date(l.assigned_date) }}</td>
+            <td>{{ format_date(l.expiry_date) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 30px;">
+      <i class="bi bi-key empty-state-icon"></i>
+      <div class="empty-state-title">No Software Licenses Allocated</div>
+      <div class="empty-state-text">No enterprise software seats are currently allocated to you.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

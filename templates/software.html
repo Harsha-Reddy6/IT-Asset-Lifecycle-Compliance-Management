@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Software Inventory - IT Asset Management Platform{% endblock %}
+{% block header_title %}Software Catalog & Applications{% endblock %}
+
+{% block content %}
+
+{% if action == 'add' or action == 'edit' %}
+<div class="card" style="max-width: 680px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-app-indicator"></i>
+      {% if action == 'add' %}Add Software Application{% else %}Edit Software: {{ item.software_name }}{% endif %}
+    </div>
+    <a href="{{ url_for('software.software_list') }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to Catalog
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{% if action == 'add' %}{{ url_for('software.add_software') }}{% else %}{{ url_for('software.edit_software', id=item.software_id) }}{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="software_name">Application Name <span class="required">*</span></label>
+            <input type="text" id="software_name" name="software_name" class="form-control" placeholder="e.g. JetBrains All Products Pack" value="{{ item.software_name if action == 'edit' else (form.software_name if form else '') }}" required autofocus>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="publisher">Publisher / Developer</label>
+            <input type="text" id="publisher" name="publisher" class="form-control" placeholder="e.g. JetBrains, Microsoft, Adobe" value="{{ item.publisher if action == 'edit' else (form.publisher if form else '') }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="software_category">Application Category</label>
+            <input type="text" id="software_category" name="software_category" class="form-control" placeholder="e.g. Developer Tools, Productivity Suite" value="{{ item.software_category if action == 'edit' else (form.software_category if form else '') }}">
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="version">Version / Release</label>
+            <input type="text" id="version" name="version" class="form-control" placeholder="e.g. 2026.1 / Cloud" value="{{ item.version if action == 'edit' else (form.version if form else '') }}">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ url_for('software.software_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2"></i> Save Software
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('software.software_list') }}" style="display: flex; gap: 12px; flex: 1;">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" name="search" class="form-control" placeholder="Search software by name, publisher, category..." value="{{ search or '' }}">
+    </div>
+    <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Search</button>
+    {% if search %}
+    <a href="{{ url_for('software.software_list') }}" class="btn btn-outline">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <a href="{{ url_for('software.add_software') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> Add Software
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if software %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Application Name</th>
+            <th>Publisher</th>
+            <th>Category</th>
+            <th>Version</th>
+            <th>License Contracts</th>
+            <th>Total Seats</th>
+            {% if current_user.role == 'admin' %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in software %}
+          <tr>
+            <td>
+              <div style="font-weight: 600; color: var(--primary);">{{ s.software_name }}</div>
+            </td>
+            <td>{{ s.publisher or 'N/A' }}</td>
+            <td>
+              <span class="badge badge-secondary">{{ s.software_category or 'General' }}</span>
+            </td>
+            <td>{{ s.version or 'Standard' }}</td>
+            <td>
+              <span class="badge badge-secondary">{{ s.license_count }} contract(s)</span>
+            </td>
+            <td>
+              <strong>{{ s.total_seats }}</strong> seats
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              <div style="display: flex; gap: 6px;">
+                <a href="{{ url_for('software.edit_software', id=s.software_id) }}" class="btn btn-secondary btn-sm" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <button type="button" class="btn btn-danger btn-sm" 
+                  data-action="confirm-delete" 
+                  data-form-action="{{ url_for('software.delete_software', id=s.software_id) }}" 
+                  data-item-name="{{ s.software_name }}" 
+                  title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('software.software_list', page=pagination.prev_page, search=search) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('software.software_list', page=pagination.next_page, search=search) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-app empty-state-icon"></i>
+      <div class="empty-state-title">No Software Applications Found</div>
+      <div class="empty-state-text">No software products match your search.</div>
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('software.add_software') }}" class="btn btn-primary">Add Application</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Departments - IT Asset Management Platform{% endblock %}
+{% block header_title %}Organization Departments{% endblock %}
+
+{% block content %}
+
+{% if action == 'add' or action == 'edit' %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-building"></i>
+      {% if action == 'add' %}Create Department{% else %}Edit Department: {{ department.department_name }}{% endif %}
+    </div>
+    <a href="{{ url_for('departments.departments_list') }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{% if action == 'add' %}{{ url_for('departments.add_department') }}{% else %}{{ url_for('departments.edit_department', id=department.department_id) }}{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label class="form-label" for="department_name">Department Name <span class="required">*</span></label>
+        <input type="text" id="department_name" name="department_name" class="form-control" placeholder="e.g. Information Technology" value="{{ department.department_name if action == 'edit' else (form.department_name if form else '') }}" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="description">Description</label>
+        <textarea id="description" name="description" class="form-textarea" placeholder="Brief scope and responsibilities of this business unit...">{{ department.description if action == 'edit' else (form.description if form else '') }}</textarea>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ url_for('departments.departments_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2"></i> Save Department
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('departments.departments_list') }}" style="display: flex; gap: 12px; flex: 1;">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" name="search" class="form-control" placeholder="Search departments by name or description..." value="{{ search or '' }}">
+    </div>
+    <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Search</button>
+    {% if search %}
+    <a href="{{ url_for('departments.departments_list') }}" class="btn btn-outline">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <a href="{{ url_for('departments.add_department') }}" class="btn btn-primary">
+      <i class="bi bi-building-add"></i> Add Department
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if departments %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Department Name</th>
+            <th>Description</th>
+            <th>Staff Count</th>
+            {% if current_user.role == 'admin' %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for dept in departments %}
+          <tr>
+            <td>
+              <div style="font-weight: 600; color: var(--primary);">{{ dept.department_name }}</div>
+            </td>
+            <td>{{ dept.description or 'No description provided.' }}</td>
+            <td>
+              <span class="badge badge-secondary">{{ dept.employee_count }} employee(s)</span>
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              <div style="display: flex; gap: 6px;">
+                <a href="{{ url_for('departments.edit_department', id=dept.department_id) }}" class="btn btn-secondary btn-sm" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <button type="button" class="btn btn-danger btn-sm" 
+                  data-action="confirm-delete" 
+                  data-form-action="{{ url_for('departments.delete_department', id=dept.department_id) }}" 
+                  data-item-name="{{ dept.department_name }}" 
+                  title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('departments.departments_list', page=pagination.prev_page, search=search) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('departments.departments_list', page=pagination.next_page, search=search) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-building empty-state-icon"></i>
+      <div class="empty-state-title">No Departments Found</div>
+      <div class="empty-state-text">No departments match your query.</div>
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('departments.add_department') }}" class="btn btn-primary">Add Department</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

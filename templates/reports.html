@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - IT Asset Management Platform{% endblock %}
+{% block header_title %}Analytics & Executive Reports{% endblock %}
+
+{% block content %}
+
+<!-- Report Navigation Tabs -->
+<div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; flex-wrap: wrap;">
+  <a href="{{ url_for('reports.reports_hub') }}" class="btn {% if active_tab == 'hub' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">
+    <i class="bi bi-grid-1x2"></i> Overview Hub
+  </a>
+  <a href="{{ url_for('reports.report_assets') }}" class="btn {% if active_tab == 'assets' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">
+    <i class="bi bi-laptop"></i> Hardware Inventory Report
+  </a>
+  <a href="{{ url_for('reports.report_licenses') }}" class="btn {% if active_tab == 'licenses' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">
+    <i class="bi bi-key"></i> License Utilization Report
+  </a>
+  <a href="{{ url_for('reports.report_compliance') }}" class="btn {% if active_tab == 'compliance' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">
+    <i class="bi bi-shield-check"></i> Compliance & Audit Trail
+  </a>
+</div>
+
+<!-- ==================== HUB / EXECUTIVE OVERVIEW ==================== -->
+{% if active_tab == 'hub' %}
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-blue"><i class="bi bi-cash-stack"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-label">Total Asset Valuation</div>
+      <div class="kpi-value">{{ format_currency(asset_summary.total_valuation) }}</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-purple"><i class="bi bi-wallet2"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-label">Software License Investment</div>
+      <div class="kpi-value">{{ format_currency(license_summary.total_spend) }}</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-green"><i class="bi bi-cpu"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-label">Total Equipment Count</div>
+      <div class="kpi-value">{{ asset_summary.total_assets }} units</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper kpi-icon-amber"><i class="bi bi-person-workspace"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-label">Allocated Equipment</div>
+      <div class="kpi-value">{{ asset_summary.assigned_count }} units</div>
+    </div>
+  </div>
+</div>
+
+<!-- Direct CSV Export Hub -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="bi bi-file-earmark-spreadsheet"></i> One-Click Enterprise Data Exports</div>
+  </div>
+  <div class="card-body">
+    <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 20px;">
+      Export raw organization assets, license portfolios, checkout histories, and compliance audit logs to standard CSV format.
+    </p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+      <a href="{{ url_for('reports.export_csv', type='assets') }}" class="btn btn-secondary" style="padding: 16px; justify-content: flex-start;">
+        <i class="bi bi-download" style="font-size: 18px; color: var(--primary);"></i>
+        <div>
+          <div style="font-weight: 600;">Assets Inventory</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Hardware, specs & values</div>
+        </div>
+      </a>
+      <a href="{{ url_for('reports.export_csv', type='licenses') }}" class="btn btn-secondary" style="padding: 16px; justify-content: flex-start;">
+        <i class="bi bi-download" style="font-size: 18px; color: #8b5cf6;"></i>
+        <div>
+          <div style="font-weight: 600;">Software Licenses</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Entitlements, seats & expiry</div>
+        </div>
+      </a>
+      <a href="{{ url_for('reports.export_csv', type='assignments') }}" class="btn btn-secondary" style="padding: 16px; justify-content: flex-start;">
+        <i class="bi bi-download" style="font-size: 18px; color: var(--success);"></i>
+        <div>
+          <div style="font-weight: 600;">Asset Checkouts</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Historical assignments & returns</div>
+        </div>
+      </a>
+      <a href="{{ url_for('reports.export_csv', type='compliance') }}" class="btn btn-secondary" style="padding: 16px; justify-content: flex-start;">
+        <i class="bi bi-download" style="font-size: 18px; color: var(--danger);"></i>
+        <div>
+          <div style="font-weight: 600;">Compliance Alerts</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Audit alerts & resolution log</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ASSETS INVENTORY REPORT ==================== -->
+{% elif active_tab == 'assets' %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="bi bi-laptop"></i> Hardware Asset Inventory Audit Report</div>
+    <a href="{{ url_for('reports.export_csv', type='assets') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-file-earmark-excel"></i> Export CSV
+    </a>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Asset Code</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Brand & Model</th>
+            <th>Serial Number</th>
+            <th>Purchase Date</th>
+            <th>Valuation</th>
+            <th>Warranty Expiry</th>
+            <th>Location</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assets %}
+          <tr>
+            <td><strong>{{ a.asset_code }}</strong></td>
+            <td>{{ a.asset_name }}</td>
+            <td><span class="badge badge-secondary">{{ a.category_name or 'General' }}</span></td>
+            <td>{{ a.brand or '' }} {{ a.model_number or '' }}</td>
+            <td><code>{{ a.serial_number or '-' }}</code></td>
+            <td>{{ format_date(a.purchase_date) }}</td>
+            <td><strong>{{ format_currency(a.purchase_cost) }}</strong></td>
+            <td>{{ format_date(a.warranty_expiry) }}</td>
+            <td>{{ a.location or 'Default HQ' }}</td>
+            <td>
+              <span class="badge badge-{{ 'available' if a.asset_status == 'Available' else ('assigned' if a.asset_status == 'Assigned' else ('maintenance' if a.asset_status == 'Under Maintenance' else 'retired')) }}">
+                {{ a.asset_status }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== LICENSES UTILIZATION REPORT ==================== -->
+{% elif active_tab == 'licenses' %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="bi bi-key"></i> Software License Utilization & Compliance Report</div>
+    <a href="{{ url_for('reports.export_csv', type='licenses') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-file-earmark-excel"></i> Export CSV
+    </a>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Software Product</th>
+            <th>Publisher</th>
+            <th>License Key</th>
+            <th>Total Entitlements</th>
+            <th>Assigned Seats</th>
+            <th>Available Seats</th>
+            <th>Contract Cost</th>
+            <th>Expiry Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lic in licenses %}
+          <tr>
+            <td>
+              <div style="font-weight: 600; color: var(--primary);">{{ lic.software_name }}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">{{ lic.version or 'Standard' }}</div>
+            </td>
+            <td>{{ lic.publisher or 'N/A' }}</td>
+            <td><code>{{ lic.license_key or 'Keyless' }}</code></td>
+            <td><strong>{{ lic.total_licenses }}</strong></td>
+            <td><span class="badge badge-assigned">{{ lic.assigned_count }}</span></td>
+            <td><span class="badge badge-{{ 'available' if lic.available_count > 0 else 'expired' }}">{{ lic.available_count }}</span></td>
+            <td>{{ format_currency(lic.license_cost) }}</td>
+            <td>{{ format_date(lic.expiry_date) }}</td>
+            <td>
+              <span class="badge badge-{{ 'active' if lic.license_status == 'Active' else ('expired' if lic.license_status == 'Expired' else 'secondary') }}">
+                {{ lic.license_status }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== COMPLIANCE & AUDIT REPORT ==================== -->
+{% elif active_tab == 'compliance' %}
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <div class="card-title"><i class="bi bi-exclamation-octagon"></i> Historical Compliance Violations</div>
+    <a href="{{ url_for('reports.export_csv', type='compliance') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-file-earmark-excel"></i> Export Alerts CSV
+    </a>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Alert Type</th>
+            <th>Affected Resource</th>
+            <th>Message</th>
+            <th>Date Logged</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for al in alerts %}
+          <tr>
+            <td>#{{ al.alert_id }}</td>
+            <td><span class="badge badge-{{ 'expired' if 'Expired' in al.alert_type else 'warning' }}">{{ al.alert_type }}</span></td>
+            <td>{{ al.asset_name or al.software_name or 'System Resource' }}</td>
+            <td style="font-size: 12px;">{{ al.alert_message }}</td>
+            <td>{{ format_date(al.alert_date, "%b %d, %Y %H:%M") }}</td>
+            <td><span class="badge badge-{{ 'expired' if al.alert_status == 'Open' else 'available' }}">{{ al.alert_status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="bi bi-clock-history"></i> System Audit Trail (Last 50 Events)</div>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Log ID</th>
+            <th>Action</th>
+            <th>Operator</th>
+            <th>Description</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lg in audit_logs %}
+          <tr>
+            <td>#{{ lg.log_id }}</td>
+            <td><code>{{ lg.action }}</code></td>
+            <td>{{ lg.user_name or lg.username or 'System' }}</td>
+            <td>{{ lg.description }}</td>
+            <td>{{ format_date(lg.created_at, "%b %d, %Y %H:%M:%S") }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

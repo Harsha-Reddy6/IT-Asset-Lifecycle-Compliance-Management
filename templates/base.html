@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Intelligent IT Asset Lifecycle & License Compliance Platform{% endblock %}</title>
+  
+  <!-- Bootstrap Icons CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- Platform Stylesheets -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="app-container">
+    {% if current_user.id %}
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">
+          <i class="bi bi-cpu"></i>
+        </div>
+        <div>
+          <div class="brand-title">IT Asset Platform</div>
+          <div class="brand-subtitle">Lifecycle & Compliance</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Core Management</div>
+        
+        <a href="{{ url_for('dashboard.dashboard_view') }}" class="nav-link {% if request.endpoint == 'dashboard.dashboard_view' %}active{% endif %}">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <a href="{{ url_for('employees.employees_list') }}" class="nav-link {% if 'employee' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-people"></i>
+          <span>Employees</span>
+        </a>
+
+        <a href="{{ url_for('departments.departments_list') }}" class="nav-link {% if 'department' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-building"></i>
+          <span>Departments</span>
+        </a>
+
+        <div class="nav-section-title">Hardware & Assets</div>
+
+        <a href="{{ url_for('assets.assets_list') }}" class="nav-link {% if 'asset' in request.endpoint and 'assignment' not in request.endpoint and 'category' not in request.endpoint %}active{% endif %}">
+          <i class="bi bi-laptop"></i>
+          <span>Assets</span>
+        </a>
+
+        <a href="{{ url_for('categories.categories_list') }}" class="nav-link {% if 'category' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-tags"></i>
+          <span>Categories</span>
+        </a>
+
+        <a href="{{ url_for('assignments.assignments_list') }}" class="nav-link {% if 'assignments.assignments_list' in request.endpoint or 'assignments.add_assignment' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-box-arrow-right"></i>
+          <span>Asset Allocation</span>
+        </a>
+
+        <div class="nav-section-title">Software & Licenses</div>
+
+        <a href="{{ url_for('software.software_list') }}" class="nav-link {% if 'software.software_list' in request.endpoint or 'software.add_software' in request.endpoint or 'software.edit_software' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-app"></i>
+          <span>Software Inventory</span>
+        </a>
+
+        <a href="{{ url_for('licenses.licenses_list') }}" class="nav-link {% if 'licenses.licenses_list' in request.endpoint or 'licenses.add_license' in request.endpoint or 'licenses.edit_license' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-key"></i>
+          <span>Software Licenses</span>
+        </a>
+
+        <a href="{{ url_for('license_assignments.license_assignments_list') }}" class="nav-link {% if 'license_assignments' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-person-check"></i>
+          <span>License Allocation</span>
+        </a>
+
+        <div class="nav-section-title">Procurement & Health</div>
+
+        <a href="{{ url_for('vendors.vendors_list') }}" class="nav-link {% if 'vendor' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-shop"></i>
+          <span>Vendors</span>
+        </a>
+
+        <a href="{{ url_for('maintenance.maintenance_list') }}" class="nav-link {% if 'maintenance' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-tools"></i>
+          <span>Maintenance</span>
+        </a>
+
+        <a href="{{ url_for('purchase_orders.purchase_orders_list') }}" class="nav-link {% if 'purchase_order' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-receipt"></i>
+          <span>Purchase Orders</span>
+        </a>
+
+        <div class="nav-section-title">Governance & Analytics</div>
+
+        <a href="{{ url_for('compliance.compliance_dashboard') }}" class="nav-link {% if 'compliance' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-shield-check"></i>
+          <span>Compliance</span>
+        </a>
+
+        <a href="{{ url_for('reports.reports_hub') }}" class="nav-link {% if 'report' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-bar-chart"></i>
+          <span>Reports</span>
+        </a>
+
+        <a href="{{ url_for('auth.profile') }}" class="nav-link {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+          <i class="bi bi-person-circle"></i>
+          <span>Profile</span>
+        </a>
+
+        <a href="{{ url_for('auth.logout') }}" class="nav-link" style="color: #f87171;">
+          <i class="bi bi-box-arrow-left"></i>
+          <span>Logout</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-mini-card">
+          <div class="user-avatar">
+            {{ current_user.full_name[:1] | upper if current_user.full_name else 'U' }}
+          </div>
+          <div class="user-info-text">
+            <div class="user-name">{{ current_user.full_name or current_user.username }}</div>
+            <span class="user-role-badge role-{{ current_user.role }}">{{ current_user.role }}</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+    {% endif %}
+
+    <!-- ==================== MAIN PAGE ==================== -->
+    <div class="app-main" {% if not current_user.id %}style="margin-left: 0;"{% endif %}>
+      {% if current_user.id %}
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle Navigation">
+            <i class="bi bi-list"></i>
+          </button>
+          <div class="page-headline">{% block header_title %}Intelligent IT Asset Management{% endblock %}</div>
+        </div>
+        <div class="topbar-right">
+          <a href="{{ url_for('auth.profile') }}" class="quick-action-link">
+            <i class="bi bi-person"></i>
+            <span>{{ current_user.username }}</span>
+          </a>
+          <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-sm">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Logout</span>
+          </a>
+        </div>
+      </header>
+      {% endif %}
+
+      <main class="app-content">
+        <!-- Flash Alert Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                {% if category == 'success' %}<i class="bi bi-check-circle-fill"></i>{% endif %}
+                {% if category == 'danger' %}<i class="bi bi-exclamation-triangle-fill"></i>{% endif %}
+                {% if category == 'warning' %}<i class="bi bi-exclamation-circle-fill"></i>{% endif %}
+                {% if category == 'info' %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+                <span>{{ message }}</span>
+              </div>
+              <button class="alert-close" aria-label="Dismiss alert">&times;</button>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- Error page fallback block -->
+        {% if error_title %}
+        <div class="card" style="max-width: 600px; margin: 40px auto; text-align: center; padding: 36px 20px;">
+          <h2 style="color: var(--danger); margin-bottom: 12px;">{{ error_title }}</h2>
+          <p style="color: var(--text-muted); margin-bottom: 24px;">{{ error_message }}</p>
+          <div>
+            <a href="{{ url_for('dashboard.dashboard_view') }}" class="btn btn-primary">Return to Dashboard</a>
+          </div>
+        </div>
+        {% else %}
+        {% block content %}{% endblock %}
+        {% endif %}
+      </main>
+    </div>
+  </div>
+
+  <!-- Universal Confirmation Modal for Deletions -->
+  <div class="modal-backdrop" id="deleteConfirmModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" style="color: var(--danger); display: flex; align-items: center; gap: 8px;">
+          <i class="bi bi-exclamation-triangle-fill"></i> Confirm Deletion
+        </div>
+        <button class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 8px;">Are you sure you want to delete <strong id="deleteItemName">this item</strong>?</p>
+        <p style="font-size: 12.5px; color: var(--text-muted);">This action will remove the record from the database. It cannot be reversed if business rules permit deletion.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+        <form id="deleteConfirmForm" method="POST" style="display: inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger">Confirm Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vanilla Scripts -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

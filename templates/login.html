@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - IT Asset Lifecycle, QR Tracking & Compliance Platform</title>
+
+  <!-- Bootstrap Icons CDN for crisp enterprise icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Dedicated Stylesheet (Separate CSS File) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+
+  <div class="login-wrapper">
+
+    <!-- ==================== LEFT BRANDING PANEL ==================== -->
+    <div class="branding-panel">
+      <div>
+        <div class="brand-badge">
+          <i class="bi bi-shield-check"></i> Enterprise Security
+        </div>
+
+        <h1 class="project-title">
+          IT Asset Lifecycle, <span>QR Tracking</span> & License Compliance
+        </h1>
+
+        <p class="project-subtitle">
+          Intelligent hardware inventory lifecycle management, QR dispatch tracking, software license governance, and enterprise service portal.
+        </p>
+
+        <!-- IT Asset Management Illustration -->
+        <div class="illustration-container">
+          <svg class="illustration-svg" viewBox="0 0 400 240" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="IT Asset Management Illustration">
+            <!-- Server Rack Background Element -->
+            <rect x="30" y="30" width="100" height="170" rx="8" fill="#111e3f" stroke="#1e2e5a" stroke-width="2"/>
+            <rect x="42" y="45" width="76" height="18" rx="3" fill="#1b2a52"/>
+            <circle cx="52" cy="54" r="3" fill="#10b981"/>
+            <circle cx="62" cy="54" r="3" fill="#38bdf8"/>
+            <rect x="42" y="72" width="76" height="18" rx="3" fill="#1b2a52"/>
+            <circle cx="52" cy="81" r="3" fill="#10b981"/>
+            <circle cx="62" cy="81" r="3" fill="#38bdf8"/>
+            <rect x="42" y="99" width="76" height="18" rx="3" fill="#1b2a52"/>
+            <circle cx="52" cy="108" r="3" fill="#10b981"/>
+            <circle cx="62" cy="108" r="3" fill="#38bdf8"/>
+            <rect x="42" y="126" width="76" height="18" rx="3" fill="#1b2a52"/>
+            <circle cx="52" cy="135" r="3" fill="#f59e0b"/>
+            <rect x="42" y="153" width="76" height="18" rx="3" fill="#1b2a52"/>
+            <circle cx="52" cy="162" r="3" fill="#10b981"/>
+
+            <!-- Laptop Asset Centerpiece -->
+            <rect x="145" y="70" width="170" height="105" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+            <rect x="153" y="78" width="154" height="89" rx="3" fill="#1e293b"/>
+            
+            <!-- Laptop Screen Content / QR & Code -->
+            <path d="M165 92h50M165 104h35M165 116h60M165 128h40" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+            
+            <!-- QR Code Badge -->
+            <rect x="245" y="90" width="48" height="48" rx="4" fill="#0f172a" stroke="#2563eb" stroke-width="1.5"/>
+            <rect x="250" y="95" width="14" height="14" fill="#38bdf8"/>
+            <rect x="253" y="98" width="8" height="8" fill="#0f172a"/>
+            <rect x="273" y="95" width="14" height="14" fill="#38bdf8"/>
+            <rect x="276" y="98" width="8" height="8" fill="#0f172a"/>
+            <rect x="250" y="118" width="14" height="14" fill="#38bdf8"/>
+            <rect x="253" y="121" width="8" height="8" fill="#0f172a"/>
+            <rect x="273" y="118" width="6" height="6" fill="#38bdf8"/>
+            <rect x="281" y="126" width="6" height="6" fill="#38bdf8"/>
+
+            <!-- Laptop Base & Stand -->
+            <path d="M125 175h210c4 0 7 3 7 7v4H118v-4c0-4 3-7 7-7z" fill="#334155"/>
+            <rect x="205" y="176" width="50" height="3" rx="1.5" fill="#64748b"/>
+
+            <!-- Floating Shield / License Key -->
+            <g transform="translate(305, 40)">
+              <circle cx="24" cy="24" r="22" fill="#2563eb" fill-opacity="0.2" stroke="#38bdf8" stroke-width="1.5"/>
+              <path d="M24 13l10 4v7c0 7-4.5 13-10 15-5.5-2-10-8-10-15v-7l10-4z" fill="#2563eb"/>
+              <path d="M21 24l2.5 2.5 5.5-5.5" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+
+            <!-- Network Pulsing Dot Line -->
+            <path d="M130 115h15" stroke="#38bdf8" stroke-dasharray="3 3" stroke-width="2"/>
+            <path d="M315 115h30" stroke="#38bdf8" stroke-dasharray="3 3" stroke-width="2"/>
+          </svg>
+        </div>
+
+        <div class="features-list">
+          <div class="feature-item">
+            <div class="feature-icon-bullet"><i class="bi bi-qr-code-scan"></i></div>
+            <span>QR Code Tracking & Hardware Lifecycle State Engine</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon-bullet"><i class="bi bi-shield-check"></i></div>
+            <span>Automated Software License Entitlements & Compliance</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon-bullet"><i class="bi bi-diagram-3"></i></div>
+            <span>Multi-Department Workstation & Device Allocation</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="security-footer">
+        <i class="bi bi-lock-fill"></i>
+        <span>256-bit encrypted administrative session with MySQL audit logging</span>
+      </div>
+    </div>
+
+    <!-- ==================== RIGHT FORM PANEL ==================== -->
+    <div class="form-panel">
+      <div class="form-header">
+        <div class="admin-portal-pill">
+          <i class="bi bi-shield-lock-fill"></i> Administrator Access Portal
+        </div>
+        <h2 class="form-title">Sign In</h2>
+        <p class="form-subtitle">Enter your system administrator credentials to continue.</p>
+      </div>
+
+      <!-- Flask Flash Messages (Error / Success alerts) -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+          <div class="alert-box alert-{{ category }}">
+            {% if category == 'danger' %}
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            {% else %}
+            <i class="bi bi-check-circle-fill"></i>
+            {% endif %}
+            <span>{{ message }}</span>
+          </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Admin Login Form (Pure Server-Side POST to Flask) -->
+      <form id="adminLoginForm" method="POST" action="{{ url_for('auth.login') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Username / Email Field -->
+        <div class="input-group">
+          <label class="input-label" for="identifier">Admin Username or Email</label>
+          <div class="input-wrapper">
+            <i class="bi bi-person-fill input-icon-left"></i>
+            <input 
+              type="text" 
+              id="identifier" 
+              name="identifier" 
+              class="login-input" 
+              placeholder="admin or admin@organization.com" 
+              value="{{ identifier or '' }}" 
+              autocomplete="username" 
+              required 
+              autofocus
+            >
+          </div>
+          <div class="input-error-msg" id="identifierError"></div>
+        </div>
+
+        <!-- Password Field with Show/Hide Toggle -->
+        <div class="input-group">
+          <label class="input-label" for="password">Password</label>
+          <div class="input-wrapper">
+            <i class="bi bi-lock-fill input-icon-left"></i>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              class="login-input" 
+              placeholder="••••••••••••" 
+              autocomplete="current-password" 
+              required
+            >
+            <button 
+              type="button" 
+              class="toggle-password-btn" 
+              id="togglePasswordBtn" 
+              title="Show password" 
+              aria-label="Toggle password visibility"
+            >
+              <i class="bi bi-eye" id="toggleIcon"></i>
+            </button>
+          </div>
+          <div class="input-error-msg" id="passwordError"></div>
+        </div>
+
+        <!-- Submit Button with Spinner -->
+        <button type="submit" class="btn-login" id="submitBtn">
+          <span class="spinner" id="btnSpinner"></span>
+          <span id="btnText">Log In as Administrator</span>
+          <i class="bi bi-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="login-meta-box">
+        <div><strong>Administrator Account:</strong> <code>admin</code> / <code>Admin@123</code></div>
+        <div style="margin-top: 4px; font-size: 11px; color: var(--slate-400);">
+          Only accounts with the <code>admin</code> role are permitted access through this portal.
+        </div>
+      </div>
+
+      <div class="portal-footer-notice">
+        &copy; 2026 Enterprise IT Asset Management &bull; Authorized Personnel Only
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Dedicated Interactive JavaScript (Separate JS File) -->
+  <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+</html>

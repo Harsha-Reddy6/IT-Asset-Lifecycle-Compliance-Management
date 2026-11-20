@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Maintenance - IT Asset Management Platform{% endblock %}
+{% block header_title %}Asset Maintenance & Service Records{% endblock %}
+
+{% block content %}
+
+{% if action == 'add' or action == 'edit' %}
+<div class="card" style="max-width: 720px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-tools"></i>
+      {% if action == 'add' %}Schedule / Log Maintenance{% else %}Edit Maintenance Record #{{ record.maintenance_id }}{% endif %}
+    </div>
+    <a href="{{ url_for('maintenance.maintenance_list') }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to Maintenance
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{% if action == 'add' %}{{ url_for('maintenance.add_maintenance') }}{% else %}{{ url_for('maintenance.edit_maintenance', id=record.maintenance_id) }}{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label class="form-label" for="asset_id">Hardware Asset <span class="required">*</span></label>
+        <select id="asset_id" name="asset_id" class="form-select" {% if action == 'edit' %}disabled style="background-color: #f1f5f9;"{% else %}required{% endif %}>
+          <option value="">-- Select Asset --</option>
+          {% for a in assets %}
+          <option value="{{ a.asset_id }}" {% if (action == 'edit' and record.asset_id == a.asset_id) or (form and form.asset_id == a.asset_id|string) %}selected{% endif %}>
+            {{ a.asset_name }} ({{ a.asset_code }})
+          </option>
+          {% endfor %}
+        </select>
+        {% if action == 'edit' %}
+        <input type="hidden" name="asset_id" value="{{ record.asset_id }}">
+        {% endif %}
+      </div>
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="maintenance_type">Service / Maintenance Type</label>
+            <input type="text" id="maintenance_type" name="maintenance_type" class="form-control" placeholder="e.g. Battery Replacement, Screen Repair, OS Reinstall" value="{{ record.maintenance_type if action == 'edit' else (form.maintenance_type if form else '') }}">
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="maintenance_date">Maintenance Date</label>
+            <input type="date" id="maintenance_date" name="maintenance_date" class="form-control" value="{{ record.maintenance_date if action == 'edit' else (form.maintenance_date if form else '') }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="cost">Repair Cost ($)</label>
+            <input type="number" step="0.01" min="0" id="cost" name="cost" class="form-control" placeholder="0.00" value="{{ record.cost if action == 'edit' else (form.cost if form else '') }}">
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="maintenance_status">Service Status</label>
+            <select id="maintenance_status" name="maintenance_status" class="form-select">
+              <option value="Pending" {% if (action == 'edit' and record.maintenance_status == 'Pending') or (form and form.maintenance_status == 'Pending') %}selected{% endif %}>Pending</option>
+              <option value="In Progress" {% if (action == 'edit' and record.maintenance_status == 'In Progress') or (form and form.maintenance_status == 'In Progress') %}selected{% endif %}>In Progress</option>
+              <option value="Completed" {% if (action == 'edit' and record.maintenance_status == 'Completed') or (form and form.maintenance_status == 'Completed') %}selected{% endif %}>Completed</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="description">Detailed Description / Diagnostic Notes</label>
+        <textarea id="description" name="description" class="form-textarea" placeholder="Technician notes, parts replaced, warranty claim details...">{{ record.description if action == 'edit' else (form.description if form else '') }}</textarea>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ url_for('maintenance.maintenance_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2"></i> Save Maintenance Record
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('maintenance.maintenance_list') }}" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" name="search" class="form-control" placeholder="Search by asset, code, maintenance type..." value="{{ search or '' }}">
+    </div>
+
+    <div class="filter-group">
+      <select name="status" id="maintenanceStatusFilter" class="form-select" style="min-width: 150px;">
+        <option value="">All Statuses</option>
+        <option value="Pending" {% if selected_status == 'Pending' %}selected{% endif %}>Pending</option>
+        <option value="In Progress" {% if selected_status == 'In Progress' %}selected{% endif %}>In Progress</option>
+        <option value="Completed" {% if selected_status == 'Completed' %}selected{% endif %}>Completed</option>
+      </select>
+
+      <button type="submit" class="btn btn-secondary"><i class="bi bi-funnel"></i> Filter</button>
+      {% if search or selected_status %}
+      <a href="{{ url_for('maintenance.maintenance_list') }}" class="btn btn-outline">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <a href="{{ url_for('maintenance.add_maintenance') }}" class="btn btn-primary">
+      <i class="bi bi-wrench"></i> Log Maintenance
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if records %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Hardware Asset</th>
+            <th>Maintenance Type</th>
+            <th>Scheduled / Date</th>
+            <th>Repair Cost</th>
+            <th>Status</th>
+            <th>Diagnostic Notes</th>
+            {% if current_user.role == 'admin' %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in records %}
+          <tr>
+            <td>
+              <div style="font-weight: 600;">{{ m.asset_name }}</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">{{ m.asset_code }}</div>
+            </td>
+            <td><strong>{{ m.maintenance_type or 'General Inspection' }}</strong></td>
+            <td>{{ format_date(m.maintenance_date) }}</td>
+            <td>{{ format_currency(m.cost) }}</td>
+            <td>
+              <span class="badge badge-{{ 'completed' if m.maintenance_status == 'Completed' else ('in-progress' if m.maintenance_status == 'In Progress' else 'pending') }}">
+                {{ m.maintenance_status }}
+              </span>
+            </td>
+            <td style="max-width: 240px; font-size: 12px; color: var(--text-muted);">
+              {{ m.description or '-' }}
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              <a href="{{ url_for('maintenance.edit_maintenance', id=m.maintenance_id) }}" class="btn btn-secondary btn-sm" title="Edit Maintenance">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('maintenance.maintenance_list', page=pagination.prev_page, search=search, status=selected_status) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('maintenance.maintenance_list', page=pagination.next_page, search=search, status=selected_status) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-tools empty-state-icon"></i>
+      <div class="empty-state-title">No Maintenance Records Found</div>
+      <div class="empty-state-text">No equipment service tickets match your criteria.</div>
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('maintenance.add_maintenance') }}" class="btn btn-primary">Log Maintenance Operation</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

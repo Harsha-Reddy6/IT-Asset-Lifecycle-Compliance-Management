@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Software Licenses - IT Asset Management Platform{% endblock %}
+{% block header_title %}Software Licenses & Entitlements{% endblock %}
+
+{% block content %}
+
+{% if action == 'add' or action == 'edit' %}
+<div class="card" style="max-width: 760px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-key-fill"></i>
+      {% if action == 'add' %}Register New Software License{% else %}Edit License: {{ license.software_name }}{% endif %}
+    </div>
+    <a href="{{ url_for('licenses.licenses_list') }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to Licenses
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{% if action == 'add' %}{{ url_for('licenses.add_license') }}{% else %}{{ url_for('licenses.edit_license', id=license.license_id) }}{% endif %}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="software_id">Software Product <span class="required">*</span></label>
+            <select id="software_id" name="software_id" class="form-select" required>
+              <option value="">-- Select Software --</option>
+              {% for s in software_list %}
+              <option value="{{ s.software_id }}" {% if (action == 'edit' and license.software_id == s.software_id) or (form and form.software_id == s.software_id|string) %}selected{% endif %}>
+                {{ s.software_name }} ({{ s.version or 'Standard' }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="vendor_id">Supplier / Reseller</label>
+            <select id="vendor_id" name="vendor_id" class="form-select">
+              <option value="">-- Select Vendor --</option>
+              {% for v in vendors %}
+              <option value="{{ v.vendor_id }}" {% if (action == 'edit' and license.vendor_id == v.vendor_id) or (form and form.vendor_id == v.vendor_id|string) %}selected{% endif %}>
+                {{ v.vendor_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="license_key">License Key / Serial</label>
+            <input type="text" id="license_key" name="license_key" class="form-control" placeholder="e.g. XXXX-YYYY-ZZZZ-WWWW" value="{{ license.license_key if action == 'edit' else (form.license_key if form else '') }}">
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label class="form-label" for="total_licenses">Total Seat Entitlements <span class="required">*</span></label>
+            <input type="number" min="1" id="total_licenses" name="total_licenses" class="form-control" placeholder="e.g. 25" value="{{ license.total_licenses if action == 'edit' else (form.total_licenses if form else '1') }}" required>
+            {% if action == 'edit' %}
+            <div class="form-hint">Currently active assigned seats: {{ license.assigned_count }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col-4">
+          <div class="form-group">
+            <label class="form-label" for="purchase_date">Purchase Date</label>
+            <input type="date" id="purchase_date" name="purchase_date" class="form-control" value="{{ license.purchase_date if action == 'edit' else (form.purchase_date if form else '') }}">
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="form-group">
+            <label class="form-label" for="expiry_date">Expiry / Renewal Date</label>
+            <input type="date" id="expiry_date" name="expiry_date" class="form-control" value="{{ license.expiry_date if action == 'edit' else (form.expiry_date if form else '') }}">
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="form-group">
+            <label class="form-label" for="license_cost">Contract Cost ($)</label>
+            <input type="number" step="0.01" min="0" id="license_cost" name="license_cost" class="form-control" placeholder="0.00" value="{{ license.license_cost if action == 'edit' else (form.license_cost if form else '') }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="license_status">License Status</label>
+        <select id="license_status" name="license_status" class="form-select">
+          <option value="Active" {% if (action == 'edit' and license.license_status == 'Active') or (form and form.license_status == 'Active') %}selected{% endif %}>Active</option>
+          <option value="Expired" {% if (action == 'edit' and license.license_status == 'Expired') or (form and form.license_status == 'Expired') %}selected{% endif %}>Expired</option>
+          <option value="Cancelled" {% if (action == 'edit' and license.license_status == 'Cancelled') or (form and form.license_status == 'Cancelled') %}selected{% endif %}>Cancelled</option>
+        </select>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ url_for('licenses.licenses_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2"></i> Save License
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="filter-toolbar">
+  <form method="GET" action="{{ url_for('licenses.licenses_list') }}" style="display: flex; gap: 12px; flex-wrap: wrap; flex: 1;">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" name="search" class="form-control" placeholder="Search by software name, publisher, key..." value="{{ search or '' }}">
+    </div>
+
+    <div class="filter-group">
+      <select name="status" id="licenseStatusFilter" class="form-select" style="min-width: 140px;">
+        <option value="">All Statuses</option>
+        <option value="Active" {% if selected_status == 'Active' %}selected{% endif %}>Active</option>
+        <option value="Expired" {% if selected_status == 'Expired' %}selected{% endif %}>Expired</option>
+        <option value="Cancelled" {% if selected_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+      </select>
+
+      <button type="submit" class="btn btn-secondary"><i class="bi bi-funnel"></i> Filter</button>
+      {% if search or selected_status %}
+      <a href="{{ url_for('licenses.licenses_list') }}" class="btn btn-outline">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if current_user.role == 'admin' %}
+  <div>
+    <a href="{{ url_for('licenses.add_license') }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg"></i> Add License
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if licenses %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Software Product</th>
+            <th>Publisher</th>
+            <th>License Key</th>
+            <th>Seat Capacity</th>
+            <th>Allocated / Available</th>
+            <th>Expiry Date</th>
+            <th>Cost</th>
+            <th>Status</th>
+            {% if current_user.role == 'admin' %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for lic in licenses %}
+          <tr>
+            <td>
+              <div style="font-weight: 600; color: var(--primary);">{{ lic.software_name }}</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">{{ lic.version or 'Standard' }}</div>
+            </td>
+            <td>{{ lic.publisher or 'N/A' }}</td>
+            <td><code>{{ lic.license_key or 'Keyless' }}</code></td>
+            <td><strong>{{ lic.total_licenses }}</strong> seats</td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge badge-assigned">{{ lic.assigned_count }} used</span>
+                <span class="badge badge-{{ 'available' if lic.available_count > 0 else 'expired' }}">{{ lic.available_count }} free</span>
+              </div>
+            </td>
+            <td>{{ format_date(lic.expiry_date) }}</td>
+            <td>{{ format_currency(lic.license_cost) }}</td>
+            <td>
+              <span class="badge badge-{{ 'active' if lic.license_status == 'Active' else ('expired' if lic.license_status == 'Expired' else 'secondary') }}">
+                {{ lic.license_status }}
+              </span>
+            </td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              <div style="display: flex; gap: 6px;">
+                <a href="{{ url_for('licenses.edit_license', id=lic.license_id) }}" class="btn btn-secondary btn-sm" title="Edit License">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div style="padding: 16px 20px;">
+      <div class="pagination-wrapper">
+        <div>Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_items }} total records)</div>
+        <div class="pagination-links">
+          <a href="{{ url_for('licenses.licenses_list', page=pagination.prev_page, search=search, status=selected_status) }}" class="page-btn {% if not pagination.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i> Previous
+          </a>
+          <span class="page-btn active">{{ pagination.page }}</span>
+          <a href="{{ url_for('licenses.licenses_list', page=pagination.next_page, search=search, status=selected_status) }}" class="page-btn {% if not pagination.has_next %}disabled{% endif %}">
+            Next <i class="bi bi-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-key empty-state-icon"></i>
+      <div class="empty-state-title">No Software Licenses Found</div>
+      <div class="empty-state-text">No licenses match your search.</div>
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('licenses.add_license') }}" class="btn btn-primary">Add Software License</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/licenses.js') }}"></script>
+{% endblock %}
